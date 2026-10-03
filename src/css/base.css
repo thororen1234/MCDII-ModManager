@@ -1,0 +1,129 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { 
+  height: 100%; 
+  overflow: hidden; 
+  background-color: var(--bg-dark); 
+  color: var(--text-main); 
+  font-family: var(--font); 
+  font-size: 13px; 
+}
+button { cursor: pointer; border: none; background: none; font-family: var(--font); }
+input, select { font-family: var(--font); }
+a { color: var(--accent); text-decoration: none; transition: color var(--transition); }
+a:hover { color: var(--accent-hover); }
+
+#title-bar {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--titlebar-h); z-index: 1000;
+  background: var(--bg-dark);
+  display: flex; align-items: center; justify-content: space-between;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+#title-bar-left { display: flex; align-items: center; gap: 16px; padding-left: 12px; }
+
+#title-bar-text {
+  font-size: 11px; font-weight: 800; letter-spacing: 2px;
+  color: var(--text-dim); text-transform: uppercase;
+}
+#title-bar-center { flex: 1; height: 100%; }
+.title-tabs { display: flex; gap: 2px; -webkit-app-region: no-drag; }
+.title-tabs .title-action-btn { margin-right: 0; }
+.title-action-btn.active { color: var(--text-main); background: var(--bg-card); border-color: var(--border); }
+#title-bar-right { 
+  display: flex; align-items: center; height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.window-controls { display: flex; height: 100%; }
+.window-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 46px; height: 100%;
+  color: var(--text-dim); cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  -webkit-app-region: no-drag;
+  border: none; background: none;
+}
+.window-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-main); }
+.window-btn.close-btn:hover { background: #e81123; color: #fff; }
+
+#app-root {
+  display: flex;
+  height: 100vh;
+  padding-top: var(--titlebar-h);
+}
+
+#main-content { 
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  min-width: 0; 
+  background: var(--bg-dark);
+  overflow: hidden;
+}
+
+#pages-container { 
+  flex: 1; 
+  overflow-y: auto; 
+  overflow-x: hidden;
+  padding: 12px 32px 200px; 
+  background: var(--bg-dark); 
+}
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.2s ease; }
+.page-header { 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: flex-end; 
+  margin-bottom: 16px; 
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  gap: 20px;
+}
+.header-main { display: flex; flex-direction: column; gap: 2px; }
+.header-stats { font-size: 10px; font-weight: 800; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.8; }
+.header-actions { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; }
+.header-path { font-size: 11px; color: var(--text-dim); opacity: 0.7; word-break: break-all; }
+
+#toast-container { position: fixed; bottom: 40px; right: 20px; z-index: 3000; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  padding: 10px 16px; border-radius: var(--radius-sm); font-size: 13px;
+  background: var(--bg-panel); border: 1px solid var(--border); border-left: 3px solid var(--border);
+  color: var(--text-main); box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: fadeIn 0.2s ease-out; max-width: 300px;
+}
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--danger); }
+.toast.info    { border-left-color: var(--accent); }
+
+@keyframes fadeIn   { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes slideUp  { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes spin     { to { transform: rotate(360deg); } }
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
+
+.status-bar {
+  flex-shrink: 0;
+  height: 0;
+  background: var(--accent);
+  color: var(--text-on-accent);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 11px;
+  font-weight: 700;
+  z-index: 4000;
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.status-bar.active { height: 24px; }
+.status-bar.error { background: var(--danger); color: #fff; }

@@ -1,0 +1,67 @@
+/* 
+    MCDII MOD MANAGER THEME TEMPLATE
+    --------------------------------
+    How to use:
+    1. Rename this file to 'your-theme-name.css' (e.g., 'forest-dark.css')
+    2. Replace ALL occurrences of 'YOUR-THEME-NAME' below with your file's name (e.g., 'forest-dark')
+    3. Update the colors and styles below!
+*/
+
+[data-theme="YOUR-THEME-NAME"] {
+  /* BACKGROUNDS */
+  --bg-dark: #121214;      /* Main app background */
+  --bg-panel: #1a1a1c;     /* Sidebar and modal background */
+  --bg-card: #222224;      /* Cards, item backgrounds */
+  --bg-hover: #2d2d30;     /* Hover states for items */
+  
+  /* ACCENTS */
+  --accent: #0078d4;       /* Primary action color (buttons, toggles) */
+  --accent-hover: #006cbd; /* Hover state for accent colors */
+  --accent-dim: rgba(0, 120, 212, 0.15); /* Faint version of accent for backgrounds */
+  
+  /* TEXT */
+  --text-main: #f4f4f5;    /* Primary text color */
+  --text-dim: #a1a1aa;     /* Secondary/Subtle text color */
+  --text-on-accent: #ffffff; /* Text color when sitting on top of an accent color */
+  
+  /* BORDERS */
+  --border: #2d2d30;       /* Standard border color */
+  --border-hover: #3a3a3d; /* Border color when hovering */
+  
+  /* STATUS */
+  --success: #16a34a;      /* Success messages, update ready */
+  --danger: #dc2626;       /* Error messages, delete buttons */
+  --danger-dim: rgba(220, 38, 38, 0.15);
+  
+  /* SHAPES */
+  --radius: 6px;           /* Main corner roundness */
+  --radius-sm: 4px;        /* Smaller corner roundness */
+  
+  /* MISC */
+  --scrollbar-thumb: rgba(255,255,255,0.1);
+  --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 
+   CUSTOM OVERRIDES
+   ----------------
+   You can also target specific elements to give your theme unique personality.
+   Always prefix your selectors with [data-theme="YOUR-THEME-NAME"]!
+*/
+
+/* Example: Changing the Launch Game button shape */
+/*
+[data-theme="YOUR-THEME-NAME"] .launch-btn {
+    clip-path: polygon(10% 0, 100% 0, 100% 70%, 90% 100%, 0 100%, 0 30%);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+*/
+
+/* Example: Changing sidebar section labels */
+/*
+[data-theme="YOUR-THEME-NAME"] .sidebar-section-label {
+    color: var(--accent);
+    font-weight: 900;
+}
+*/

@@ -1,0 +1,32 @@
+{
+  "name": "mcdii-modmanager",
+  "private": true,
+  "version": "1.0.4",
+  "description": "A Mod Manager for Minecraft Dungeons II",
+  "bugs": {
+    "url": "https://github.com/thororen1234/MCDII-ModManager/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thororen1234/MCDII-ModManager.git"
+  },
+  "license": "GPL-3.0-or-later",
+  "author": "thororen1234",
+  "type": "module",
+  "packageManager": "pnpm@11.1.1",
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build",
+    "test": "cargo test",
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-dialog": "^2.7.1",
+    "@tauri-apps/plugin-opener": "^2.5.4",
+    "@tauri-apps/plugin-updater": "^2.10.1"
+  }
+}

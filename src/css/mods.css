@@ -1,0 +1,34 @@
+.mod-list-header {
+  display: grid;
+  grid-template-columns: 30px 1fr 36px 36px 80px;
+  gap: 12px; padding: 6px 12px;
+  font-size: 11px; font-weight: 600; color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px; text-transform: uppercase;
+  margin-top: 8px;
+}
+.mod-list-header span:not(:first-child) { text-align: center; }
+
+.mod-item {
+  display: grid;
+  grid-template-columns: 30px 1fr 36px 36px 80px;
+  gap: 12px; align-items: center;
+  background: var(--bg-panel); border: 1px solid transparent;
+  border-radius: var(--radius-sm); padding: 8px 12px;
+  transition: all var(--transition);
+}
+.mod-item > :not(.mod-info) { justify-self: center; }
+.mod-item:hover { background: var(--bg-hover); }
+.mod-item.active-mod { border-left: 3px solid var(--accent); background: var(--bg-card); }
+.mod-info { display: flex; flex-direction: column; gap: 2px; }
+.mod-name { font-size: 13px; color: var(--text-main); font-weight: 500; }
+.mod-meta { font-size: 11px; color: var(--text-dim); }
+.mod-item.loader-mod { border-left: 3px solid var(--warning, #eab308); }
+.loader-badge {
+  display: inline-block; margin-left: 8px; padding: 1px 6px;
+  border-radius: var(--radius-sm); font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px; vertical-align: middle;
+  background: rgba(234, 179, 8, 0.15); color: #eab308;
+}
+.icon-btn:disabled, .toggle input:disabled + .toggle-slider { opacity: 0.35; cursor: not-allowed; }
+.mods-hint code { font-size: 11px; }

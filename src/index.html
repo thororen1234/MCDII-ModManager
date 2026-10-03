@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCDII Mod Manager - A Minecraft Dungeons II Mod Manager</title>
+  <meta name="description" content="MCDII Mod Manager - Manage your Minecraft Dungeons II mods." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+  <div class="modal-overlay" id="modal-confirm" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-title" id="modal-confirm-title">Confirm</div>
+      <div class="modal-body" id="modal-confirm-body"></div>
+      <div class="modal-actions">
+        <button class="modal-btn accent" id="modal-confirm-yes">OK</button>
+        <button class="modal-btn" id="modal-confirm-no">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-rename" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-title">Rename Mod</div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">New name:</label>
+          <input type="text" class="form-input" id="rename-input" />
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn accent" id="modal-rename-confirm">Rename</button>
+        <button class="modal-btn" id="modal-rename-cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-update" aria-modal="true" role="dialog" aria-hidden="true">
+    <div class="modal">
+      <div class="modal-title">Update Available</div>
+      <div class="modal-body">
+        <p id="modal-update-msg"></p>
+        <div class="changelog-box" id="modal-update-changelog"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn" id="modal-update-later">Later</button>
+        <button class="modal-btn accent" id="modal-update-now">Update Now</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-loading" aria-hidden="true">
+    <div class="modal loading-modal">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">Working...</div>
+    </div>
+  </div>
+
+  <div id="title-bar" data-tauri-drag-region>
+    <div id="title-bar-left" data-tauri-drag-region>
+      <span id="title-bar-text" data-tauri-drag-region>MCDII MOD MANAGER</span>
+      <nav class="title-tabs">
+        <button class="title-action-btn title-tab active" data-page="mods">Mods</button>
+        <button class="title-action-btn title-tab" data-page="settings">Settings</button>
+      </nav>
+    </div>
+    <div id="title-bar-center" data-tauri-drag-region></div>
+    <div id="title-bar-right">
+      <button id="btn-check-updates" class="title-action-btn" title="Check for updates">Check for Updates</button>
+      <div class="window-controls">
+        <button class="window-btn" id="btn-minimize" title="Minimize">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <rect x="0" y="5" width="10" height="1" fill="currentColor" />
+          </svg>
+        </button>
+        <button class="window-btn" id="btn-maximize" title="Maximize">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <rect x="1" y="1" width="8" height="8" fill="none" stroke="currentColor" stroke-width="1" />
+          </svg>
+        </button>
+        <button class="window-btn close-btn" id="btn-close" title="Close">
+          <svg width="10" height="10" viewBox="0 0 10 10">
+            <path d="M1,1 L9,9 M9,1 L1,9" stroke="currentColor" stroke-width="1" fill="none" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="app-root">
+    <main id="main-content">
+      <div id="pages-container">
+
+        <div id="page-mods" class="page active">
+          <div class="page-header">
+            <div class="header-main">
+              <h1 class="page-title">Mod Manager</h1>
+              <div class="header-stats" id="mods-stats">0 mods</div>
+              <div class="header-path" id="mods-path"></div>
+            </div>
+            <div class="header-actions">
+              <button class="save-btn" id="btn-open-mods-dir">Open Mods Folder</button>
+              <button class="save-btn" id="btn-add-mod">Install Mod</button>
+              <button class="save-btn" id="btn-no-intro" style="display: none;">Skip Intro</button>
+              <button class="save-btn accent" id="btn-launch">Launch Game</button>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="search-wrap">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input type="text" autocomplete="off" id="mods-search" class="search-input"
+                placeholder="Search mods..." />
+            </div>
+            <div class="sort-group">
+              <select id="mods-sort" class="sort-select">
+                <option value="name" selected>Name</option>
+                <option value="date">Date Added</option>
+                <option value="size">Size</option>
+              </select>
+              <button id="mods-sort-order" class="sort-order-btn">
+                <svg id="mods-sort-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
+              </button>
+            </div>
+            <select id="mods-status-filter" class="sort-select">
+              <option value="all">All Status</option>
+              <option value="enabled">Enabled</option>
+              <option value="disabled">Disabled</option>
+            </select>
+            <button class="save-btn accent" id="btn-enable-all-mods">Enable All</button>
+            <button class="save-btn danger" id="btn-disable-all-mods">Disable All</button>
+          </div>
+
+          <div id="mods-bulk-actions" class="bulk-actions-bar" style="display: none;">
+            <div class="bulk-info">
+              <label class="checkbox-container">
+                <input type="checkbox" id="mods-select-all">
+                <span class="checkmark"></span>
+              </label>
+              <span id="mods-selected-count">0 items selected</span>
+            </div>
+            <div class="bulk-btns">
+              <button class="bulk-btn accent" id="btn-bulk-enable-mods">Enable Selected</button>
+              <button class="bulk-btn accent" id="btn-bulk-disable-mods">Disable Selected</button>
+              <button class="bulk-btn danger" id="btn-bulk-delete-mods">Delete Selected</button>
+            </div>
+          </div>
+
+          <div class="mod-list-header">
+            <span class="col-select"></span>
+            <span class="col-name">Mod Name</span>
+            <span class="col-edit">Edit</span>
+            <span class="col-del">Delete</span>
+            <span class="col-toggle">Active</span>
+          </div>
+          <div id="mods-list" class="item-list"></div>
+          <div id="mods-empty" class="empty-state">
+            <p>No mods found. Add some to get started!</p>
+          </div>
+          <p class="meta-help mods-hint">Close the game before changing mods. Disabled mods keep their files with a
+            <code>.disabled</code> extension.</p>
+        </div>
+
+        <div id="page-settings" class="page">
+          <div class="page-header">
+            <div class="page-title">General Settings</div>
+          </div>
+
+          <div class="settings-grid">
+            <section class="settings-section">
+              <div class="settings-section-title">Game</div>
+              <div class="form-group">
+                <label class="form-label">Game Paks Folder</label>
+                <div class="storage-row">
+                  <input type="text" id="game-input" class="form-input" readonly placeholder="Not found yet..." />
+                  <div class="storage-actions">
+                    <button class="modal-btn" id="game-detect-btn">Auto-detect</button>
+                    <button class="modal-btn" id="game-browse-btn">Browse</button>
+                  </div>
+                </div>
+                <p class="meta-help">Steam and Xbox / Game Pass installs are found automatically. Otherwise pick the
+                  Minecraft Dungeons II install folder or its <code>Content\Paks</code> folder.</p>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <div class="settings-section-title">Appearance</div>
+              <div class="form-group">
+                <label class="form-label">Theme</label>
+                <div class="custom-select" id="theme-custom-select">
+                  <div class="custom-select-trigger" id="theme-trigger">
+                    <span id="theme-current-label">Midnight (Default)</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </div>
+                  <div class="custom-options-panel" id="theme-options">
+                    <div class="custom-option-group">Dark Themes</div>
+                    <div class="custom-option" data-value="dark">Midnight (Default)</div>
+                    <div class="custom-option" data-value="old-midnight">Old Midnight</div>
+                    <div class="custom-option" data-value="obsidian-dark">Obsidian Dark</div>
+                    <div class="custom-option" data-value="onyx-dark">Onyx Dark</div>
+                    <div class="custom-option" data-value="gray">Slate Gray</div>
+                    <div class="custom-option" data-value="neon">Neon Night</div>
+                    <div class="custom-option" data-value="green">Forest Green</div>
+                    <div class="custom-option" data-value="red">Crimson Red</div>
+                    <div class="custom-option" data-value="blue">Deep Blue</div>
+                    <div class="custom-option" data-value="purple">Amethyst Purple</div>
+                    <div class="custom-option" data-value="orange">Sunset Orange</div>
+                    <div class="custom-option" data-value="monokai">Monokai</div>
+
+                    <div class="custom-option-group">Light Themes</div>
+                    <div class="custom-option" data-value="light">Pure Light</div>
+                    <div class="custom-option" data-value="arctic">Arctic Blue</div>
+                    <div class="custom-option" data-value="rose">Rose Pine</div>
+                    <div class="custom-option" data-value="solarized">Solarized Warm</div>
+                    <div class="custom-option" data-value="matcha">Matcha Tea</div>
+                    <div class="custom-option" data-value="lavender">Lavender Mist</div>
+                    <div class="custom-option" data-value="nordic">Nordic Frost</div>
+                    <div class="custom-option" data-value="dracula">Dracula</div>
+
+                    <div class="custom-option-group">Specialty</div>
+                    <div class="custom-option" data-value="amoled">AMOLED Black</div>
+                    <div class="custom-option" data-value="obsidian">Blurple Ash</div>
+                    <div class="custom-option" data-value="matrix">The Matrix</div>
+                    <div class="custom-option" data-value="coffee">Coffee House</div>
+                  </div>
+                </div>
+                <select id="theme-select" class="form-select" style="display: none;">
+                  <option value="dark">Midnight (Default)</option>
+                  <option value="old-midnight">Old Midnight</option>
+                  <option value="obsidian-dark">Obsidian Dark</option>
+                  <option value="onyx-dark">Onyx Dark</option>
+                  <option value="gray">Slate Gray</option>
+                  <option value="neon">Neon Night</option>
+                  <option value="green">Forest Green</option>
+                  <option value="red">Crimson Red</option>
+                  <option value="blue">Deep Blue</option>
+                  <option value="purple">Amethyst Purple</option>
+                  <option value="orange">Sunset Orange</option>
+                  <option value="monokai">Monokai</option>
+                  <option value="light">Pure Light</option>
+                  <option value="arctic">Arctic Blue</option>
+                  <option value="rose">Rose Pine</option>
+                  <option value="solarized">Solarized Warm</option>
+                  <option value="matcha">Matcha Tea</option>
+                  <option value="lavender">Lavender Mist</option>
+                  <option value="nordic">Nordic Frost</option>
+                  <option value="dracula">Dracula</option>
+                  <option value="amoled">AMOLED Black</option>
+                  <option value="obsidian">Blurple Ash</option>
+                  <option value="matrix">The Matrix</option>
+                  <option value="coffee">Coffee House</option>
+                </select>
+              </div>
+            </section>
+
+            <section class="settings-section">
+              <div class="settings-section-title">Application Data</div>
+              <div class="form-group" style="display: flex; flex-direction: column; gap: 8px;">
+                <button class="action-btn" id="btn-open-game-dir">Open Game Folder</button>
+                <button class="action-btn" id="btn-open-config-dir">Open Config Folder</button>
+                <button class="action-btn" id="btn-open-themes-dir">Open Themes Folder</button>
+                <p class="meta-help">Access your settings and custom CSS theme files.</p>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+      <div id="status-bar" class="status-bar"></div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+  <script type="module" src="main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MCDII Mod Manager",
+  "version": "1.0.4",
+  "identifier": "com.thororen.mcdiimodmanager",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "MCDII Mod Manager - A Minecraft Dungeons II Mod Manager",
+        "width": 1200,
+        "height": 720,
+        "minWidth": 760,
+        "minHeight": 520,
+        "decorations": false,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' https: data:; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDQyODRFMzQyRDFEQTNDQzYKUldUR1BOclJRdU9FUXF1WnUzazlvZkZqMW5hZkdzSk85UTBvd1hiWmpaU0hmSTZGQUUyRFRIaWwK",
+      "endpoints": [
+        "https://github.com/thororen1234/MCDII-ModManager/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}
