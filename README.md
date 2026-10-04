@@ -9,3 +9,4 @@ A mod manager for Minecraft Dungeons II (Blueprint Loader mods). Install, toggle
 ## Credits
 
 - The app icon is from Minecraft Dungeons II. Minecraft Dungeons II is a trademark of Mojang Studios / Microsoft; this project is unofficial and not affiliated with or endorsed by them.
+- Includes No Intro Button to install <https://www.nexusmods.com/minecraftdungeons2/mods/69>
