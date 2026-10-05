@@ -1,6 +1,6 @@
 [package]
 name = "mcdii-modmanager"
-version = "1.0.4"
+version = "1.0.5"
 description = "A Mod Manager for Minecraft Dungeons II"
 authors = ["thororen1234"]
 edition = "2021"
@@ -24,6 +24,9 @@ zip = "2"
 walkdir = "2"
 open = "5"
 dirs = "5"
+# Same HTTP client and TLS setup as tauri-plugin-updater, so nothing new is compiled in.
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider"] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 
 [target.'cfg(windows)'.dependencies]
 winreg = "0.55"

@@ -26,6 +26,8 @@ pub fn run() {
             mod_manager::list_themes,
             mod_manager::read_theme,
             mod_manager::launch_game,
+            mod_manager::update_loader,
+            mod_manager::check_loader_update,
             intro::intro_status,
             intro::apply_no_intro,
             intro::restore_intro,

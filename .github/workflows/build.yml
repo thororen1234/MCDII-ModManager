@@ -62,3 +62,61 @@ jobs:
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
+
+      - name: Read the Nexus Mods settings
+        id: nexus
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY != '' }}
+        run: |
+          config="nexus.json"
+          file_id=""
+          if [ -f "$config" ]; then file_id="$(jq -r '.file_id // 0' "$config")"; fi
+          if [ "$file_id" = "" ] || [ "$file_id" = "0" ] || [ "$HAS_API_KEY" != "true" ]; then
+            echo "::notice::Not uploading to Nexus Mods: needs a file_id in $config and the NEXUSMODS_API_KEY secret"
+            echo "upload=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "upload=true" >> "$GITHUB_OUTPUT"
+          echo "file_id=$file_id" >> "$GITHUB_OUTPUT"
+          version="$(jq -r .version src-tauri/tauri.conf.json)"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          mod_id="$(jq -r '.mod_id // 0' "$config")"
+          if [ "$mod_id" = "0" ]; then mod_id=""; fi
+          echo "mod_id=$mod_id" >> "$GITHUB_OUTPUT"
+          if [ -n "$mod_id" ]; then
+            {
+              echo "changelog<<NEXUS_CHANGELOG_END"
+              gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" -f tag_name="v$version" --jq .body
+              echo "NEXUS_CHANGELOG_END"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Package for Nexus Mods
+        id: nexus_package
+        if: steps.nexus.outputs.upload == 'true'
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ steps.nexus.outputs.version }}
+        run: |
+          $setup = Get-ChildItem "src-tauri/target/${{ matrix.target }}/release/bundle/nsis" -Filter "*-setup.exe"
+          if ($setup.Count -ne 1) { throw "Expected one NSIS installer, found: $($setup.Name -join ', ')" }
+          $zip = "MCDII-ModManager-$env:RELEASE_VERSION.zip"
+          Compress-Archive -Path $setup.FullName -DestinationPath $zip
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+
+      - name: Upload to Nexus Mods
+        if: steps.nexus.outputs.upload == 'true'
+        uses: Nexus-Mods/upload-action@c96019556046053aa26044b44396cd38929daf23
+        with:
+          api_key: ${{ secrets.NEXUSMODS_API_KEY }}
+          file_id: ${{ steps.nexus.outputs.file_id }}
+          filename: ${{ steps.nexus_package.outputs.zip }}
+          version: ${{ steps.nexus.outputs.version }}
+          display_name: MCDII Mod Manager
+          archive_existing_version: true
+          update_mod_version: true
+          mod_id: ${{ steps.nexus.outputs.mod_id }}
+          changelog: ${{ steps.nexus.outputs.changelog }}

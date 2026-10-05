@@ -30,5 +30,14 @@
   text-transform: uppercase; letter-spacing: 0.5px; vertical-align: middle;
   background: rgba(234, 179, 8, 0.15); color: #eab308;
 }
+.update-btn {
+  margin-left: 8px; padding: 1px 8px; vertical-align: middle;
+  border: none; border-radius: var(--radius-sm); cursor: pointer;
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+  background: var(--accent); color: #fff;
+  transition: background var(--transition);
+}
+.update-btn:hover { background: var(--accent-hover); }
+.update-btn:disabled { opacity: 0.5; cursor: wait; }
 .icon-btn:disabled, .toggle input:disabled + .toggle-slider { opacity: 0.35; cursor: not-allowed; }
 .mods-hint code { font-size: 11px; }

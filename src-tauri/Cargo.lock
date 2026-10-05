@@ -2184,10 +2184,12 @@ dependencies = [
 
 [[package]]
 name = "mcdii-modmanager"
-version = "1.0.4"
+version = "1.0.5"
 dependencies = [
  "dirs 5.0.1",
  "open",
+ "reqwest",
+ "rustls",
  "serde",
  "serde_json",
  "tauri",

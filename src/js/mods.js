@@ -21,6 +21,18 @@ export async function refreshMods(silent = false) {
   }
 }
 
+// Checks GitHub for a newer BetterBlueprintLoader, then refreshes so its Update button shows.
+export async function checkLoaderUpdate() {
+  if (!state.config.paksPath) return;
+  try {
+    const version = await invoke('check_loader_update');
+    if (version) showToast(`BetterBlueprintLoader ${version} is out. Click Update next to it in the mod list.`, 'info');
+    await refreshMods(true);
+  } catch (err) {
+    console.warn('BetterBlueprintLoader update check failed:', err);
+  }
+}
+
 export function renderMods() {
   const container = $('mods-list');
   const emptyState = $('mods-empty');
@@ -70,6 +82,8 @@ export function renderMods() {
   filtered.forEach((mod) => {
     const id = escapeHtml(mod.folderName);
     const locked = mod.isLoader ? 'disabled' : '';
+    // Blueprint Loader can be deleted to switch to BetterBlueprintLoader, which the app installs in its place.
+    const undeletable = mod.isLoader && mod.folderName.toLowerCase() === 'betterblueprintloader' ? 'disabled' : '';
     const modEl = document.createElement('div');
     modEl.className = `mod-item ${mod.enabled ? 'active-mod' : ''} ${mod.isLoader ? 'loader-mod' : ''}`;
     modEl.title = `Added: ${formatDate(mod.createdAt)}`;
@@ -82,16 +96,16 @@ export function renderMods() {
         </label>
       </div>
       <div class="mod-info">
-        <div class="mod-name">${id}${mod.isLoader ? '<span class="loader-badge">Loader</span>' : ''}</div>
+        <div class="mod-name">${id}${mod.isLoader ? '<span class="loader-badge">Loader</span>' : ''}${mod.updateAvailable ? '<button class="update-btn btn-update-loader" title="A newer version is available">Update</button>' : ''}</div>
         <div class="mod-meta">${mod.fileCount} file${mod.fileCount === 1 ? '' : 's'} • ${formatSize(mod.size)} • Added: ${formatDate(mod.createdAt)}</div>
       </div>
       <button class="icon-btn btn-rename-mod" data-id="${id}" title="Rename Mod" ${locked}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       </button>
-      <button class="icon-btn danger btn-delete-mod" data-id="${id}" title="Delete Mod" ${locked}>
+      <button class="icon-btn danger btn-delete-mod" data-id="${id}" title="Delete Mod" ${undeletable}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
       </button>
-      <div class="toggle-wrap" title="${mod.isLoader ? 'The Blueprint Loader is always on' : ''}">
+      <div class="toggle-wrap" title="${mod.isLoader ? 'Mod loaders are always on' : ''}">
         <label class="toggle">
           <input type="checkbox" class="mod-toggle" data-id="${id}" ${mod.enabled ? 'checked' : ''} ${locked}>
           <span class="toggle-slider"></span>
@@ -160,6 +174,19 @@ function attachModEvents() {
   document.querySelectorAll('.mod-item-check').forEach(el => {
     el.addEventListener('change', updateModsBulkUI);
   });
+
+  document.querySelectorAll('.btn-update-loader').forEach(el => {
+    el.addEventListener('click', async (e) => {
+      e.currentTarget.disabled = true;
+      try {
+        const version = await invoke('update_loader');
+        showToast(`BetterBlueprintLoader updated to ${version}`, 'success');
+      } catch (err) {
+        showToast(`${err}`, 'error');
+      }
+      await refreshMods();
+    });
+  });
 }
 
 function updateModsBulkUI() {
@@ -188,7 +215,7 @@ async function installFile(path) {
     const msg = `${err}`;
     if (!msg.startsWith('EXISTS:')) throw err;
     closeModal('modal-loading');
-    const yes = await ask(`'${escapeHtml(msg.slice(7))}' is already installed. Replace it?`, { title: "Replace Mod?", kind: 'warning' });
+    const yes = await ask(`'${escapeHtml(msg.slice(7))}' is already installed. Update it?\n\nFiles you added to its folder, like skins, are kept.`, { title: "Update Mod?", kind: 'info' });
     showModal('modal-loading');
     return yes ? await invoke('install_mod', { path, overwrite: true }) : [];
   }
