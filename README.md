@@ -4,7 +4,7 @@ A mod manager for Minecraft Dungeons II (Blueprint Loader mods). Install, toggle
 
 ## Mod loader
 
-Mods need a loader to run. The app installs [BetterBlueprintLoader](https://github.com/thororen1234/MCDII-Mods/tree/main/BetterBlueprintLoader) for you, unless you already use [Blueprint Loader](https://www.nexusmods.com/minecraftdungeons2/mods/2). Only one loader can work at a time: to switch from Blueprint Loader, delete it in the app and BetterBlueprintLoader takes its place.
+Mods need a loader to run. Unless you already use [Blueprint Loader](https://www.nexusmods.com/minecraftdungeons2/mods/2), the app downloads [BetterBlueprintLoader](https://github.com/thororen1234/MCDII-Mods/tree/main/BetterBlueprintLoader) from its GitHub releases and installs it for you, and checks for a newer version each time it starts. Only one loader can work at a time: to switch from Blueprint Loader, delete it in the app and BetterBlueprintLoader takes its place.
 
 ### Requirements
 
@@ -30,7 +30,6 @@ To run the app in development mode instead, use `pnpm dev`. To run the tests, us
 
 ### Bundled files
 
-- `betterBlueprintLoader/`: [BetterBlueprintLoader](https://github.com/thororen1234/MCDII-Mods/tree/main/BetterBlueprintLoader), built from its own repo. The app installs this copy when no mod loader is installed, and downloads newer versions from its GitHub releases.
 - `noIntro/`: the blank intro videos for the No Intro option.
 
 ## Credits

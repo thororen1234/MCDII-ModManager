@@ -10,29 +10,24 @@ const DISABLED_SUFFIX: &str = ".disabled";
 const PAK_EXT: [&str; 3] = ["pak", "ucas", "utoc"];
 
 /// Loaders the game can use to run mods. Only one can work at a time: both change the same game file.
-const BUNDLED_LOADER: &str = "BetterBlueprintLoader";
-const LOADER_NAMES: [&str; 2] = [BUNDLED_LOADER, "BlueprintLoader"];
+const BETTER_LOADER: &str = "BetterBlueprintLoader";
+const LOADER_NAMES: [&str; 2] = [BETTER_LOADER, "BlueprintLoader"];
 
-/// Releases of the mods repo, where BetterBlueprintLoader updates come from.
+/// Releases of the mods repo, where BetterBlueprintLoader is downloaded from.
 const LOADER_RELEASES_URL: &str =
     "https://api.github.com/repos/thororen1234/MCDII-Mods/releases?per_page=100";
 
-/// Index of the .ucas in BUNDLED_LOADER_FILES, which holds the loader's version text.
-const LOADER_UCAS: usize = 1;
-const BUNDLED_LOADER_FILES: [(&str, &[u8]); 3] = [
-    (
-        "BetterBlueprintLoader_P.pak",
-        include_bytes!("../../betterBlueprintLoader/BetterBlueprintLoader_P.pak"),
-    ),
-    (
-        "BetterBlueprintLoader_P.ucas",
-        include_bytes!("../../betterBlueprintLoader/BetterBlueprintLoader_P.ucas"),
-    ),
-    (
-        "BetterBlueprintLoader_P.utoc",
-        include_bytes!("../../betterBlueprintLoader/BetterBlueprintLoader_P.utoc"),
-    ),
+/// BetterBlueprintLoader's files, as its releases have them.
+const LOADER_FILES: [&str; 3] = [
+    "BetterBlueprintLoader_P.pak",
+    "BetterBlueprintLoader_P.ucas",
+    "BetterBlueprintLoader_P.utoc",
 ];
+/// Index of the .ucas in LOADER_FILES, which holds the loader's code.
+const LOADER_UCAS: usize = 1;
+/// Written into BetterBlueprintLoader's folder when the app installs it: its version and a
+/// fingerprint of its files, as newer versions don't have their version in readable text.
+const LOADER_MARKER: &str = ".modmanager-version";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
@@ -97,53 +92,50 @@ pub fn paks_dir() -> Result<PathBuf, String> {
 fn mods_dir() -> Result<PathBuf, String> {
     let d = paks_dir()?.join("~mods");
     fs::create_dir_all(&d).map_err(|e| e.to_string())?;
-    ensure_loader(&d)?;
     Ok(d)
 }
 
-/// Installs BetterBlueprintLoader unless a loader is already there, and puts back any of its
-/// files that went missing. A player who uses Blueprint Loader instead keeps it.
-fn ensure_loader(mods: &Path) -> Result<(), String> {
-    let installed = fs::read_dir(mods)
-        .map_err(|e| e.to_string())?
-        .flatten()
-        .filter(|e| e.file_type().map(|t| t.is_dir()).unwrap_or(false))
-        .map(|e| e.file_name().to_string_lossy().to_string())
-        .filter(|name| is_loader(name))
-        .collect::<Vec<_>>();
-    let folder = match installed
-        .iter()
-        .find(|n| n.eq_ignore_ascii_case(BUNDLED_LOADER))
-    {
-        Some(name) => mods.join(name),
-        None if installed.is_empty() => mods.join(BUNDLED_LOADER),
-        None => return Ok(()),
-    };
-    write_loader_files(&folder, &BUNDLED_LOADER_FILES, false)
+fn has_loader(mods: &Path) -> bool {
+    fs::read_dir(mods)
+        .map(|entries| {
+            entries.flatten().any(|e| {
+                e.file_type().map(|t| t.is_dir()).unwrap_or(false)
+                    && is_loader(&e.file_name().to_string_lossy())
+            })
+        })
+        .unwrap_or(false)
 }
 
-/// Writes BetterBlueprintLoader files into its folder: all of them, or only missing ones.
-fn write_loader_files(folder: &Path, files: &[(&str, &[u8])], replace: bool) -> Result<(), String> {
+/// Writes BetterBlueprintLoader's files into its folder, replacing what's there, and records which
+/// version they are.
+fn install_loader_files(
+    folder: &Path,
+    files: &[(String, Vec<u8>)],
+    version: &[u32],
+) -> Result<(), String> {
     fs::create_dir_all(folder).map_err(|e| e.to_string())?;
     for (name, bytes) in files {
-        let target = folder.join(name);
-        let disabled = folder.join(format!("{}{}", name, DISABLED_SUFFIX));
-        if replace || (!target.exists() && !disabled.exists()) {
-            let _ = fs::remove_file(&disabled);
-            fs::write(&target, bytes).map_err(|e| {
-                format!(
-                    "Installing {} ({}): {} (is the game still running?)",
-                    BUNDLED_LOADER, name, e
-                )
-            })?;
-        }
+        let _ = fs::remove_file(folder.join(format!("{}{}", name, DISABLED_SUFFIX)));
+        fs::write(folder.join(name), bytes).map_err(|e| {
+            format!(
+                "Installing {} ({}): {} (is the game still running?)",
+                BETTER_LOADER, name, e
+            )
+        })?;
+    }
+    if let Some((_, ucas)) = files
+        .iter()
+        .find(|(n, _)| n.eq_ignore_ascii_case(LOADER_FILES[LOADER_UCAS]))
+    {
+        write_loader_marker(folder, version, ucas)?;
     }
     Ok(())
 }
 
-/// The version BetterBlueprintLoader shows in game ("BetterBlueprintLoader 1.0.1"), read from its .ucas.
+/// The version older BetterBlueprintLoaders show in game ("BetterBlueprintLoader 1.0.1"), read from
+/// their .ucas. Newer ones keep it elsewhere, so this finds nothing for them.
 fn loader_version(ucas: &[u8]) -> Option<Vec<u32>> {
-    let needle = format!("{} ", BUNDLED_LOADER).into_bytes();
+    let needle = format!("{} ", BETTER_LOADER).into_bytes();
     ucas.windows(needle.len())
         .enumerate()
         .filter(|(_, w)| *w == needle.as_slice())
@@ -174,6 +166,37 @@ fn version_string(version: &[u32]) -> String {
         .join(".")
 }
 
+/// A short fingerprint of a file's contents (FNV-1a), to tell whether the loader changed since the
+/// version marker was written.
+fn fingerprint(bytes: &[u8]) -> String {
+    let hash = bytes.iter().fold(0xcbf29ce484222325u64, |h, b| {
+        (h ^ *b as u64).wrapping_mul(0x100000001b3)
+    });
+    format!("{:016x}-{}", hash, bytes.len())
+}
+
+fn write_loader_marker(folder: &Path, version: &[u32], ucas: &[u8]) -> Result<(), String> {
+    fs::write(
+        folder.join(LOADER_MARKER),
+        format!("{} {}\n", version_string(version), fingerprint(ucas)),
+    )
+    .map_err(|e| e.to_string())
+}
+
+/// The installed BetterBlueprintLoader's version: from the marker the app wrote when it installed
+/// it (if the files haven't changed since), or the text older versions have in their files. None
+/// when it can't be told, like a newer version installed by hand.
+fn installed_loader_version(folder: &Path) -> Option<Vec<u32>> {
+    let ucas = fs::read(folder.join(LOADER_FILES[LOADER_UCAS])).ok()?;
+    let marker = fs::read_to_string(folder.join(LOADER_MARKER)).unwrap_or_default();
+    if let Some((version, print)) = marker.trim().split_once(' ') {
+        if print == fingerprint(&ucas) {
+            return parse_version(version);
+        }
+    }
+    loader_version(&ucas)
+}
+
 /// The newest BetterBlueprintLoader release on GitHub, found when the app starts.
 #[derive(Debug, Clone)]
 struct RemoteLoader {
@@ -187,30 +210,16 @@ fn latest_loader() -> Option<RemoteLoader> {
     LATEST_LOADER.lock().ok()?.clone()
 }
 
-/// Whether a newer BetterBlueprintLoader than the one in this folder is available, from GitHub or
-/// bundled with the app. A newer install (from a newer download) isn't offered an older one.
+/// Whether the newest BetterBlueprintLoader release is newer than the one in this folder. An
+/// install whose version can't be told is offered it too: the startup check has already compared
+/// it with that release, and recorded the version if they're the same.
 fn loader_update_available(folder: &Path) -> bool {
-    let installed: Vec<Option<Vec<u8>>> = BUNDLED_LOADER_FILES
-        .iter()
-        .map(|(name, _)| fs::read(folder.join(name)).ok())
-        .collect();
-    let newest = [
-        loader_version(BUNDLED_LOADER_FILES[LOADER_UCAS].1),
-        latest_loader().map(|l| l.version),
-    ]
-    .into_iter()
-    .flatten()
-    .max();
-    match (
-        installed[LOADER_UCAS].as_deref().and_then(loader_version),
-        newest,
-    ) {
-        (Some(have), Some(newest)) => have < newest,
-        // The installed version can't be read: offer the bundled one if the files differ.
-        _ => installed
-            .iter()
-            .zip(BUNDLED_LOADER_FILES.iter())
-            .any(|(file, (_, bytes))| file.as_deref() != Some(*bytes)),
+    let Some(latest) = latest_loader() else {
+        return false;
+    };
+    match installed_loader_version(folder) {
+        Some(have) => have < latest.version,
+        None => true,
     }
 }
 
@@ -241,7 +250,7 @@ async fn fetch_latest_loader() -> Result<Option<RemoteLoader>, String> {
 }
 
 fn newest_loader_release(releases: &serde_json::Value) -> Option<RemoteLoader> {
-    let tag_prefix = format!("{}-v", BUNDLED_LOADER);
+    let tag_prefix = format!("{}-v", BETTER_LOADER);
     releases
         .as_array()?
         .iter()
@@ -262,27 +271,26 @@ fn newest_loader_release(releases: &serde_json::Value) -> Option<RemoteLoader> {
         .max_by(|a, b| a.version.cmp(&b.version))
 }
 
-/// Checks GitHub for a newer BetterBlueprintLoader. Returns its version when it's newer than the
-/// installed one, so the app can say so.
-#[tauri::command]
-pub async fn check_loader_update() -> Result<Option<String>, String> {
-    let latest = fetch_latest_loader().await?;
-    if let Ok(mut cached) = LATEST_LOADER.lock() {
-        cached.clone_from(&latest);
-    }
-    let folder = mods_dir()?.join(BUNDLED_LOADER);
-    Ok(latest
-        .filter(|_| folder.is_dir() && loader_update_available(&folder))
-        .map(|l| version_string(&l.version)))
+async fn download_loader(release: &RemoteLoader) -> Result<Vec<(String, Vec<u8>)>, String> {
+    let bytes = http_client()?
+        .get(&release.zip_url)
+        .send()
+        .await
+        .and_then(|r| r.error_for_status())
+        .map_err(|e| format!("Downloading {}: {}", BETTER_LOADER, e))?
+        .bytes()
+        .await
+        .map_err(|e| e.to_string())?;
+    loader_files_from_zip(&bytes)
 }
 
 /// The loader's files from a release zip, wherever they are inside it.
 fn loader_files_from_zip(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
     let mut archive =
         zip::ZipArchive::new(std::io::Cursor::new(bytes)).map_err(|e| e.to_string())?;
-    let wanted: Vec<&str> = BUNDLED_LOADER_FILES
+    let wanted: Vec<&str> = LOADER_FILES
         .iter()
-        .map(|(n, _)| *n)
+        .copied()
         .chain(["READ_THIS_FILE.txt"])
         .collect();
     let mut files = vec![];
@@ -297,47 +305,81 @@ fn loader_files_from_zip(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String>
             files.push((base, data));
         }
     }
-    for (name, _) in BUNDLED_LOADER_FILES {
+    for name in LOADER_FILES {
         if !files.iter().any(|(n, _)| n.eq_ignore_ascii_case(name)) {
             return Err(format!(
                 "The {} download is missing {}",
-                BUNDLED_LOADER, name
+                BETTER_LOADER, name
             ));
         }
     }
     Ok(files)
 }
 
-/// Updates BetterBlueprintLoader to the newest version: downloaded from GitHub, or the bundled one
-/// if that's newer. Returns the version installed.
+#[derive(Debug, Clone, Default, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LoaderCheck {
+    /// BetterBlueprintLoader was just installed, as there was no loader: its version.
+    pub installed: Option<String>,
+    /// A newer BetterBlueprintLoader is available: its version.
+    pub update: Option<String>,
+}
+
+/// Run when the app starts: finds the newest BetterBlueprintLoader on GitHub, installs it when no
+/// loader is installed, and says whether the installed one has an update.
 #[tauri::command]
-pub async fn update_loader() -> Result<String, String> {
-    let folder = mod_path(BUNDLED_LOADER)?;
-    let bundled = loader_version(BUNDLED_LOADER_FILES[LOADER_UCAS].1);
-    match latest_loader().filter(|l| Some(&l.version) > bundled.as_ref()) {
-        Some(latest) => {
-            let bytes = http_client()?
-                .get(&latest.zip_url)
-                .send()
-                .await
-                .and_then(|r| r.error_for_status())
-                .map_err(|e| format!("Downloading {}: {}", BUNDLED_LOADER, e))?
-                .bytes()
-                .await
-                .map_err(|e| e.to_string())?;
-            let files = loader_files_from_zip(&bytes)?;
-            let refs: Vec<(&str, &[u8])> = files
+pub async fn check_loader() -> Result<LoaderCheck, String> {
+    let latest = fetch_latest_loader().await?;
+    if let Ok(mut cached) = LATEST_LOADER.lock() {
+        cached.clone_from(&latest);
+    }
+    let Some(latest) = latest else {
+        return Ok(LoaderCheck::default());
+    };
+    let mods = mods_dir()?;
+    let folder = mods.join(BETTER_LOADER);
+
+    if !has_loader(&mods) {
+        let files = download_loader(&latest).await?;
+        install_loader_files(&folder, &files, &latest.version)?;
+        return Ok(LoaderCheck {
+            installed: Some(version_string(&latest.version)),
+            update: None,
+        });
+    }
+    if !folder.is_dir() {
+        return Ok(LoaderCheck::default()); // the player uses Blueprint Loader
+    }
+
+    // An install the app can't tell the version of (installed by hand) may be this release:
+    // compare it once, and remember the answer.
+    if installed_loader_version(&folder).is_none() {
+        if let Ok(files) = download_loader(&latest).await {
+            let ucas = fs::read(folder.join(LOADER_FILES[LOADER_UCAS])).unwrap_or_default();
+            let same = files
                 .iter()
-                .map(|(n, d)| (n.as_str(), d.as_slice()))
-                .collect();
-            write_loader_files(&folder, &refs, true)?;
-            Ok(version_string(&latest.version))
-        }
-        None => {
-            write_loader_files(&folder, &BUNDLED_LOADER_FILES, true)?;
-            Ok(bundled.map(|v| version_string(&v)).unwrap_or_default())
+                .any(|(n, d)| n.eq_ignore_ascii_case(LOADER_FILES[LOADER_UCAS]) && *d == ucas);
+            if same {
+                let _ = write_loader_marker(&folder, &latest.version, &ucas);
+            }
         }
     }
+    Ok(LoaderCheck {
+        installed: None,
+        update: loader_update_available(&folder).then(|| version_string(&latest.version)),
+    })
+}
+
+/// Updates BetterBlueprintLoader to the newest release. Returns the version installed.
+#[tauri::command]
+pub async fn update_loader() -> Result<String, String> {
+    let latest = latest_loader().ok_or(format!(
+        "Couldn't reach GitHub to download {}. Check your internet connection and reopen the app.",
+        BETTER_LOADER
+    ))?;
+    let files = download_loader(&latest).await?;
+    install_loader_files(&mod_path(BETTER_LOADER)?, &files, &latest.version)?;
+    Ok(version_string(&latest.version))
 }
 
 fn mod_path(folder_name: &str) -> Result<PathBuf, String> {
@@ -453,7 +495,7 @@ pub fn get_mods() -> Result<Vec<ModEntry>, String> {
                     .sum(),
                 file_count: files.len(),
                 created_at: created_at(&path),
-                update_available: folder_name.eq_ignore_ascii_case(BUNDLED_LOADER)
+                update_available: folder_name.eq_ignore_ascii_case(BETTER_LOADER)
                     && loader_update_available(&path),
                 folder_name,
             }
@@ -723,10 +765,10 @@ fn point_at_installed(dir: &Path, mapped: Vec<(usize, PathBuf)>) -> Vec<(usize, 
 pub fn delete_mod(folder_name: String) -> Result<(), String> {
     // Deleting Blueprint Loader is how a player switches to BetterBlueprintLoader, which is then
     // installed in its place.
-    if folder_name.eq_ignore_ascii_case(BUNDLED_LOADER) {
+    if folder_name.eq_ignore_ascii_case(BETTER_LOADER) {
         return Err(format!(
             "{} runs your mods and can't be deleted.",
-            BUNDLED_LOADER
+            BETTER_LOADER
         ));
     }
     let p = mod_path(&folder_name)?;
@@ -863,66 +905,56 @@ mod tests {
         assert_eq!(mapped(&["~mods/x.pak"]), ["Archive/x.pak"]);
     }
 
-    #[test]
-    fn installs_bundled_loader_only_when_no_loader() {
-        let dir = std::env::temp_dir().join(format!("mcdii_loader_test_{}", std::process::id()));
-
-        // No loader: BetterBlueprintLoader is installed.
-        fs::create_dir_all(&dir).unwrap();
-        ensure_loader(&dir).unwrap();
-        for (name, bytes) in &BUNDLED_LOADER_FILES {
-            assert_eq!(
-                &fs::read(dir.join(BUNDLED_LOADER).join(name)).unwrap(),
-                bytes
-            );
-        }
-
-        // Missing files are put back, existing ones are left alone.
-        let loader = dir.join(BUNDLED_LOADER);
-        fs::write(loader.join(BUNDLED_LOADER_FILES[0].0), b"custom").unwrap();
-        fs::remove_file(loader.join(BUNDLED_LOADER_FILES[1].0)).unwrap();
-        ensure_loader(&dir).unwrap();
-        assert_eq!(
-            fs::read(loader.join(BUNDLED_LOADER_FILES[0].0)).unwrap(),
-            b"custom"
-        );
-        assert!(loader.join(BUNDLED_LOADER_FILES[1].0).exists());
-
-        // Blueprint Loader already there: nothing is added next to it.
-        fs::remove_dir_all(&loader).unwrap();
-        fs::create_dir_all(dir.join("blueprintloader")).unwrap();
-        ensure_loader(&dir).unwrap();
-        assert_eq!(fs::read_dir(&dir).unwrap().count(), 1);
-
-        fs::remove_dir_all(&dir).ok();
+    fn fake_loader_files(code: &[u8]) -> Vec<(String, Vec<u8>)> {
+        LOADER_FILES
+            .iter()
+            .map(|n| {
+                (
+                    n.to_string(),
+                    if n.ends_with(".ucas") {
+                        code.to_vec()
+                    } else {
+                        b"x".to_vec()
+                    },
+                )
+            })
+            .collect()
     }
 
     #[test]
-    fn offers_loader_update_only_when_bundled_is_newer() {
-        let bundled = loader_version(BUNDLED_LOADER_FILES[LOADER_UCAS].1).expect("bundled version");
-        assert_eq!(
-            loader_version(b"\0BetterBlueprintLoader \0x\0BetterBlueprintLoader 1.0.1\0"),
-            Some(vec![1, 0, 1])
-        );
-
+    fn tells_installed_loader_version() {
         let dir =
-            std::env::temp_dir().join(format!("mcdii_loader_update_test_{}", std::process::id()));
-        write_loader_files(&dir, &BUNDLED_LOADER_FILES, true).unwrap();
-        assert!(!loader_update_available(&dir), "same files");
+            std::env::temp_dir().join(format!("mcdii_loader_version_test_{}", std::process::id()));
 
-        let ucas = dir.join(BUNDLED_LOADER_FILES[LOADER_UCAS].0);
-        fs::write(&ucas, b"\0BetterBlueprintLoader 0.0.1\0").unwrap();
-        assert!(loader_update_available(&dir), "older install");
+        // Installed by the app: the marker says.
+        install_loader_files(&dir, &fake_loader_files(b"code v2"), &[2, 0, 0]).unwrap();
+        assert_eq!(installed_loader_version(&dir), Some(vec![2, 0, 0]));
 
-        let newer = format!("\0BetterBlueprintLoader {}.0.0\0", bundled[0] + 1);
-        fs::write(&ucas, newer).unwrap();
+        // Changed by hand since: the marker no longer applies.
+        fs::write(dir.join(LOADER_FILES[LOADER_UCAS]), b"other code").unwrap();
+        assert_eq!(installed_loader_version(&dir), None);
+
+        // Older versions have it in their code.
+        fs::write(
+            dir.join(LOADER_FILES[LOADER_UCAS]),
+            b"\0BetterBlueprintLoader \0x\0BetterBlueprintLoader 1.0.1\0",
+        )
+        .unwrap();
+        assert_eq!(installed_loader_version(&dir), Some(vec![1, 0, 1]));
+
+        // Updates are offered only for an older version than GitHub's newest.
+        *LATEST_LOADER.lock().unwrap() = Some(RemoteLoader {
+            version: vec![2, 0, 0],
+            zip_url: String::new(),
+        });
+        assert!(loader_update_available(&dir));
+        install_loader_files(&dir, &fake_loader_files(b"code v2"), &[2, 0, 0]).unwrap();
+        assert!(!loader_update_available(&dir));
+        *LATEST_LOADER.lock().unwrap() = None;
         assert!(
             !loader_update_available(&dir),
-            "newer install isn't downgraded"
+            "nothing to offer without GitHub"
         );
-
-        write_loader_files(&dir, &BUNDLED_LOADER_FILES, true).unwrap();
-        assert!(!loader_update_available(&dir), "updated");
 
         fs::remove_dir_all(&dir).ok();
     }
@@ -958,22 +990,19 @@ mod tests {
     fn reads_loader_files_from_release_zip() {
         let path =
             std::env::temp_dir().join(format!("mcdii_loader_zip_{}.zip", std::process::id()));
-        let mut entries: Vec<(String, &[u8])> = BUNDLED_LOADER_FILES
+        let mut entries: Vec<String> = LOADER_FILES
             .iter()
-            .map(|(n, b)| (format!("BetterBlueprintLoader\\{}", n), *b))
+            .map(|n| format!("BetterBlueprintLoader\\{}", n))
             .collect();
-        entries.push((
-            "BetterBlueprintLoader\\READ_THIS_FILE.txt".into(),
-            b"readme",
-        ));
-        let refs: Vec<(&str, &[u8])> = entries.iter().map(|(n, b)| (n.as_str(), *b)).collect();
+        entries.push("BetterBlueprintLoader\\READ_THIS_FILE.txt".into());
+        let refs: Vec<(&str, &[u8])> = entries.iter().map(|n| (n.as_str(), n.as_bytes())).collect();
         write_zip(&path, &refs);
 
         let files = loader_files_from_zip(&fs::read(&path).unwrap()).unwrap();
         assert_eq!(files.len(), 4);
         assert!(files
             .iter()
-            .any(|(n, d)| n == BUNDLED_LOADER_FILES[0].0 && d == BUNDLED_LOADER_FILES[0].1));
+            .any(|(n, d)| n == LOADER_FILES[0] && d == entries[0].as_bytes()));
 
         write_zip(
             &path,

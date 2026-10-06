@@ -1,6 +1,6 @@
 import { invoke, openDialog } from './api.js';
 import { $, showToast } from './utils.js';
-import { refreshMods } from './mods.js';
+import { refreshMods, checkLoader } from './mods.js';
 import { refreshIntroStatus } from './intro.js';
 import { saveConfig, showGamePath } from './config.js';
 import { state } from './state.js';
@@ -10,6 +10,7 @@ async function useGamePath(path) {
   showGamePath();
   await refreshMods();
   await refreshIntroStatus();
+  checkLoader();
 }
 
 export async function detectGame({ silent = false } = {}) {

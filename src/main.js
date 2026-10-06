@@ -2,7 +2,7 @@ import { invoke, getCurrentWindow, checkUpdate } from './js/api.js';
 import { $, showToast, showModal, closeModal } from './js/utils.js';
 import { state } from './js/state.js';
 import { loadConfig, saveConfig, loadCustomThemes } from './js/config.js';
-import { setupModsEvents, refreshMods, checkLoaderUpdate } from './js/mods.js';
+import { setupModsEvents, refreshMods, checkLoader } from './js/mods.js';
 import { setupConfigEvents, detectGame } from './js/settings.js';
 import { setupIntroEvents, refreshIntroStatus } from './js/intro.js';
 
@@ -36,7 +36,7 @@ async function init() {
   refreshIntroStatus();
 
   checkUpdates(true);
-  checkLoaderUpdate();
+  checkLoader();
   loadCustomThemes();
   startAutoRefresh();
 }

@@ -22,15 +22,27 @@ export async function refreshMods(silent = false) {
 }
 
 // Checks GitHub for a newer BetterBlueprintLoader, then refreshes so its Update button shows.
-export async function checkLoaderUpdate() {
+// Downloads BetterBlueprintLoader from GitHub when no loader is installed, and checks for a newer one.
+// Calls while a check is running share it, so the loader isn't downloaded twice at once.
+let loaderCheck = null;
+export function checkLoader() {
+  loaderCheck ??= runLoaderCheck().finally(() => { loaderCheck = null; });
+  return loaderCheck;
+}
+
+async function runLoaderCheck() {
   if (!state.config.paksPath) return;
   try {
-    const version = await invoke('check_loader_update');
-    if (version) showToast(`BetterBlueprintLoader ${version} is out. Click Update next to it in the mod list.`, 'info');
-    await refreshMods(true);
+    const { installed, update } = await invoke('check_loader');
+    if (installed) showToast(`Installed BetterBlueprintLoader ${installed}, which your mods need to run`, 'success');
+    if (update) showToast(`BetterBlueprintLoader ${update} is out. Click Update next to it in the mod list.`, 'info');
   } catch (err) {
-    console.warn('BetterBlueprintLoader update check failed:', err);
+    console.warn('BetterBlueprintLoader check failed:', err);
+    if (!state.availableMods.some(m => m.isLoader)) {
+      showToast(`Couldn't download BetterBlueprintLoader, which your mods need to run: ${err}`, 'error');
+    }
   }
+  await refreshMods(true);
 }
 
 export function renderMods() {
@@ -144,6 +156,8 @@ async function deleteMods(folderNames) {
     closeModal('modal-loading');
     await refreshMods();
   }
+  // Deleting Blueprint Loader switches to BetterBlueprintLoader.
+  if (!state.availableMods.some(m => m.isLoader)) await checkLoader();
 }
 
 const togglableNames = () => state.availableMods.filter(m => !m.isLoader).map(m => m.folderName);
