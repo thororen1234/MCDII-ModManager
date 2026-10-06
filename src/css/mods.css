@@ -34,7 +34,7 @@
   margin-left: 8px; padding: 1px 8px; vertical-align: middle;
   border: none; border-radius: var(--radius-sm); cursor: pointer;
   font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-  background: var(--accent); color: #fff;
+  background: var(--accent); color: var(--text-on-accent);
   transition: background var(--transition);
 }
 .update-btn:hover { background: var(--accent-hover); }

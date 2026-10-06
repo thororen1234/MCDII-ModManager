@@ -157,7 +157,7 @@
   transition: transform var(--transition);
 }
 .toggle input:checked + .toggle-slider { background: var(--accent); border-color: var(--accent); }
-.toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: #fff; }
+.toggle input:checked + .toggle-slider::before { transform: translateX(20px); background: var(--text-on-accent); }
 
 .item-list { display: flex; flex-direction: column; gap: 4px; }
 .empty-state { display: none; text-align: center; padding: 60px 20px; color: var(--text-dim); }
@@ -238,7 +238,7 @@
 .modal-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); transform: translateY(-1px); }
 .modal-btn.accent { 
   background: var(--accent); 
-  color: #fff; 
+  color: var(--text-on-accent);
   border-color: var(--accent);
   box-shadow: 0 4px 12px var(--accent-dim);
 }
@@ -382,7 +382,7 @@
   border: 1px solid transparent;
 }
 
-.bulk-btn.accent { background: var(--accent); color: #fff; }
+.bulk-btn.accent { background: var(--accent); color: var(--text-on-accent); }
 .bulk-btn.accent:hover { background: var(--accent-hover); }
 .bulk-btn.danger { background: var(--danger-dim); color: var(--danger); border-color: var(--danger-dim); }
 .bulk-btn.danger:hover { background: var(--danger); color: #fff; }
