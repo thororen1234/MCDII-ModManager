@@ -70,6 +70,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           HAS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY != '' }}
+          NEXUSMODS_API_KEY: ${{ secrets.NEXUSMODS_API_KEY }}
         run: |
           config="nexus.json"
           file_id=""
@@ -83,8 +84,16 @@ jobs:
           echo "file_id=$file_id" >> "$GITHUB_OUTPUT"
           version="$(jq -r .version src-tauri/tauri.conf.json)"
           echo "version=$version" >> "$GITHUB_OUTPUT"
-          mod_id="$(jq -r '.mod_id // 0' "$config")"
-          if [ "$mod_id" = "0" ]; then mod_id=""; fi
+          page_id="$(jq -r '.mod_id // 0' "$config")"
+          game="$(jq -r '.game // "minecraftdungeons2"' "$config")"
+          mod_id=""
+          if [ "$page_id" != "0" ]; then
+            mod_id="$(curl -sf -H "apikey: $NEXUSMODS_API_KEY" -H "User-Agent: MCDII-ModManager-release" "https://api.nexusmods.com/v3/games/$game/mods/$page_id" \
+              | jq -r '(.data.id // .id // empty) | tostring')" || true
+            if [ -z "$mod_id" ]; then
+              echo "::warning::Couldn't look up the ID of $game mod $page_id on Nexus Mods, so the changelog isn't added"
+            fi
+          fi
           echo "mod_id=$mod_id" >> "$GITHUB_OUTPUT"
           if [ -n "$mod_id" ]; then
             {
