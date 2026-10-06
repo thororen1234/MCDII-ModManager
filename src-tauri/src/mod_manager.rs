@@ -409,6 +409,9 @@ fn is_disabled_file(p: &Path) -> bool {
     p.to_string_lossy().ends_with(DISABLED_SUFFIX)
 }
 
+/// Turns a mod on or off by renaming its pak files: the game skips "Mod_P.pak.disabled". Other files
+/// are left alone, as mods like CustomSkins read them by name (skins/*.png). Enabling also restores
+/// any other file with the suffix, which older versions of the app added to every file.
 fn set_enabled(folder: &Path, enable: bool) -> std::io::Result<()> {
     for f in files_of(folder) {
         let name = f
@@ -421,7 +424,7 @@ fn set_enabled(folder: &Path, enable: bool) -> std::io::Result<()> {
                 &f,
                 f.with_file_name(&name[..name.len() - DISABLED_SUFFIX.len()]),
             )?;
-        } else if !enable && !is_disabled_file(&f) {
+        } else if !enable && !is_disabled_file(&f) && has_pak_ext(&f) {
             fs::rename(&f, f.with_file_name(format!("{}{}", name, DISABLED_SUFFIX)))?;
         }
     }
@@ -626,8 +629,10 @@ fn find_installed(dir: &Path, keys: &BTreeSet<String>) -> Option<String> {
         .map(|e| e.file_name().to_string_lossy().to_string())
 }
 
+/// A mod is on when any of its pak files is (or it has none to turn off).
 fn is_enabled(files: &[PathBuf]) -> bool {
-    files.is_empty() || files.iter().any(|f| !is_disabled_file(f))
+    let mut paks = files.iter().filter(|f| has_pak_ext(f)).peekable();
+    paks.peek().is_none() || paks.any(|f| !is_disabled_file(f))
 }
 
 fn prepare_update(folder: &Path) -> Result<bool, String> {
@@ -859,15 +864,24 @@ mod tests {
         fs::create_dir_all(dir.join("sub")).unwrap();
         fs::write(dir.join("Mod.pak"), b"").unwrap();
         fs::write(dir.join("sub").join("Mod.utoc"), b"").unwrap();
+        fs::write(dir.join("sub").join("Skin.png"), b"").unwrap();
+        // Renamed by an older version of the app, which disabled every file.
+        fs::write(dir.join("Old.png.disabled"), b"").unwrap();
 
         set_enabled(&dir, false).unwrap();
         assert!(dir.join("Mod.pak.disabled").exists());
         assert!(dir.join("sub").join("Mod.utoc.disabled").exists());
-        assert!(files_of(&dir).iter().all(|f| is_disabled_file(f)));
+        assert!(
+            dir.join("sub").join("Skin.png").exists(),
+            "only pak files are renamed"
+        );
+        assert!(!is_enabled(&files_of(&dir)));
 
         set_enabled(&dir, true).unwrap();
         assert!(dir.join("Mod.pak").exists());
         assert!(dir.join("sub").join("Mod.utoc").exists());
+        assert!(dir.join("Old.png").exists(), "old renames are repaired");
+        assert!(is_enabled(&files_of(&dir)));
 
         fs::remove_dir_all(&dir).ok();
     }
@@ -1088,7 +1102,7 @@ mod tests {
             "stale pak removed"
         );
         assert_eq!(
-            fs::read(installed.join("skins").join("Mine.png.disabled")).unwrap(),
+            fs::read(installed.join("skins").join("Mine.png")).unwrap(),
             b"skin",
             "user files kept"
         );
