@@ -1,7 +1,7 @@
 {
   "name": "mcdii-modmanager",
   "private": true,
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A Mod Manager for Minecraft Dungeons II",
   "bugs": {
     "url": "https://github.com/thororen1234/MCDII-ModManager/issues"

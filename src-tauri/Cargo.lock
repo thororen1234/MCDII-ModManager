@@ -2171,7 +2171,7 @@ dependencies = [
 
 [[package]]
 name = "mcdii-modmanager"
-version = "1.0.7"
+version = "1.0.8"
 dependencies = [
  "dirs 5.0.1",
  "open",

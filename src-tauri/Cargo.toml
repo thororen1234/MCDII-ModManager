@@ -1,6 +1,6 @@
 [package]
 name = "mcdii-modmanager"
-version = "1.0.7"
+version = "1.0.8"
 description = "A Mod Manager for Minecraft Dungeons II"
 authors = ["thororen1234"]
 edition = "2021"
